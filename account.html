@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>축의금 안내</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR",
+          sans-serif;
+        background: #f7f7f9;
+        margin: 0;
+      }
+      .wrap {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 28px;
+      }
+      .hide {
+        display: none;
+      }
+      .modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+      }
+      .modal[aria-hidden="false"] {
+        display: block;
+      }
+      .backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+      }
+      .card {
+        position: relative;
+        background: #fff;
+        max-width: 520px;
+        margin: 8vh auto;
+        border-radius: 16px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        padding: 18px;
+      }
+      .card h3 {
+        margin: 0 0 4px;
+        font-size: 18px;
+      }
+      .acc-list {
+        display: grid;
+        gap: 14px;
+        margin: 12px 0;
+      }
+      .acc {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .acc h4 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+      .line {
+        border-top: 1px solid #f0f2f5;
+        margin: 8px 0;
+      }
+      .bank {
+        color: #4b5563;
+        font-size: 14px;
+      }
+      .num {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 15px;
+        margin-top: 4px;
+      }
+      .row-btns {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        flex: 1 1 150px;
+        padding: 12px 14px;
+        border-radius: 999px;
+        border: 1.5px solid #111827;
+        background: #111827;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+      }
+      .btn.ghost {
+        background: #fff;
+        color: #111827;
+        border-color: #e5e7eb;
+      }
+      #toast {
+        position: fixed;
+        left: 50%;
+        bottom: 26px;
+        transform: translateX(-50%);
+        background: #111827;
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 10px;
+        opacity: 0;
+        transition: 0.3s;
+      }
+      #toast.show {
+        opacity: 1;
+      }
+      @media (max-width: 480px) {
+        .card {
+          margin: 10vh 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1 class="hide">축의금 안내</h1>
+      <p class="hide">미리캔버스 버튼에서 바로 연결되는 페이지입니다.</p>
+    </div>
+
+    <div class="modal" id="accountModal" aria-hidden="true">
+      <div class="backdrop" id="closeBackdrop"></div>
+      <div class="card" role="dialog" aria-modal="true">
+        <h3 id="modalTitle">계좌 안내</h3>
+        <div id="accountList" class="acc-list"></div>
+        <div class="row-btns">
+          <button class="btn ghost" id="closeModal">닫기</button>
+        </div>
+        <p style="color: #6b7280; font-size: 12px; margin-top: 6px">
+          복사 후 모바일 뱅킹에서 붙여넣기 하세요.
+        </p>
+      </div>
+    </div>
+
+    <div id="toast">계좌번호가 복사되었습니다.</div>
+
+    <script>
+      const DATA = {
+        groom: {
+          title: "신랑 측 계좌",
+          accounts: [
+            {
+              label: "신랑 계좌",
+              bank: "우리은행",
+              name: "김종목",
+              number: "1002081992315",
+            },
+            {
+              label: "아버지 계좌",
+              bank: "신한은행",
+              name: "김명진",
+              number: "110478839468",
+            },
+            {
+              label: "어머니 계좌",
+              bank: "IBK기업",
+              name: "서금선",
+              number: "003042323003019",
+            },
+          ],
+        },
+        bride: {
+          title: "신부 측 계좌",
+          accounts: [
+            {
+              label: "신부 계좌",
+              bank: "국민은행",
+              name: "홍예신",
+              number: "123-456-789-00",
+            },
+            {
+              label: "아버지 계좌",
+              bank: "농협",
+              name: "홍아버지",
+              number: "351-0123-4567-89",
+            },
+            {
+              label: "어머니 계좌",
+              bank: "우리은행",
+              name: "홍어머니",
+              number: "1002-123-456789",
+            },
+          ],
+        },
+      };
+
+      const modal = document.getElementById("accountModal");
+      const modalTitle = document.getElementById("modalTitle");
+      const accountList = document.getElementById("accountList");
+      const closeModalBtn = document.getElementById("closeModal");
+      const closeBackdrop = document.getElementById("closeBackdrop");
+      const toast = document.getElementById("toast");
+
+      const side = new URLSearchParams(location.search).get("side") || "groom";
+
+      window.addEventListener("DOMContentLoaded", () => {
+        const group = DATA[side] || DATA.groom;
+        openModal(group);
+      });
+
+      function openModal(group) {
+        modalTitle.textContent = group.title || "계좌 안내";
+        accountList.innerHTML = "";
+
+        group.accounts.forEach((acc) => {
+          const box = document.createElement("div");
+          box.className = "acc";
+          box.innerHTML = `
+            <h4>${acc.label}</h4>
+            <div class="line"></div>
+            <div class="bank">${acc.bank} <span style="color:#6b7280"> (예금주: ${acc.name})</span></div>
+            <div class="num">${acc.number}</div>
+            <div class="row-btns">
+              <button class="btn" data-copy="${acc.bank} ${acc.number} ${acc.name}">계좌번호 복사</button>
+            </div>
+          `;
+          box
+            .querySelector("[data-copy]")
+            .addEventListener("click", async (e) => {
+              const text = e.currentTarget.getAttribute("data-copy");
+              try {
+                await navigator.clipboard.writeText(text);
+                showToast("계좌번호가 복사되었습니다.");
+              } catch {
+                alert("복사에 실패했어요. 길게 눌러 복사해주세요.");
+              }
+            });
+          accountList.appendChild(box);
+        });
+
+        modal.setAttribute("aria-hidden", "false");
+      }
+
+      closeModalBtn.addEventListener("click", () =>
+        modal.setAttribute("aria-hidden", "true")
+      );
+      closeBackdrop.addEventListener("click", () =>
+        modal.setAttribute("aria-hidden", "true")
+      );
+
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 1400);
+      }
+    </script>
+  </body>
+</html>
